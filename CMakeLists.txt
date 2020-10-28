@@ -14,13 +14,13 @@ add_message_files(
    		FILES
 		reg65.msg
 		reg37.msg
+		imu_flag_custom_msgs.msg
 )
 
 generate_messages(
 	   	DEPENDENCIES
    		std_msgs
 )
-
 
 add_executable(imu_flag_node src/imu_flag_node.cpp)
 add_dependencies(imu_flag_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

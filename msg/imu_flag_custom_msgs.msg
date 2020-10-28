@@ -1,0 +1,6 @@
+Header header
+
+bool wait_4_minutes_before_GBE
+bool speed_reached_25_before_GBE
+bool speed_reached_25_after_GBE
+bool bias_estimation_complete
