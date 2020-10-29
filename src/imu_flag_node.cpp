@@ -1,5 +1,4 @@
 #include<ros/ros.h>
-#include"imu_flag_node/reg65.h"
 #include"imu_flag_node/reg37.h"
 #include"sensor_msgs/Imu.h"
 #include"std_msgs/Bool.h"
@@ -30,18 +29,22 @@ imu_flag_node_class(){
 
 void Reg37_Callback(const imu_flag_node::reg37::ConstPtr msg)
 {
-	current_speed = String_To_Num<double>(msg->Vechical_Speed_Feedback)/100;
+	current_speed = String_To_Num<double>(msg->Vechical_Speed_Feedback);
+	//OS_INFO("current_speed %f",current_speed);
 
 	if(	current_speed > 25 && flag_start_GBE == false)
 		{
+		if(imu_flag_msgs.speed_reached_25_before_GBE == false)
 		ROS_INFO("speed reached 25 kmph before starting GBE");
 		imu_flag_msgs.speed_reached_25_before_GBE = true;
 		}
 	else if(current_speed > 25 && GBE_success_flag == true)
 		{
 		imu_flag_msgs.speed_reached_25_after_GBE = true;
-		ROS_INFO("speed reached 25 kmph after finishing GBE");
-		ROS_INFO("IMU bias estimation complete");
+		if(imu_flag_msgs.bias_estimation_complete == false)
+		{ROS_INFO("speed reached 25 kmph after finishing GBE");
+		ROS_INFO("IMU bias estimation complete");}
+		imu_flag_msgs.bias_estimation_complete = true;
 		}
 }	
 
@@ -57,26 +60,30 @@ void imu_callback(const sensor_msgs::Imu::ConstPtr msg)
 	{
 		current_time = msg->header.stamp.toSec();
 		time_diff = current_time - initial_time;
-		if (time_diff > 240)
+		if (time_diff > 10)
 		{
 			if( imu_flag_msgs.wait_4_minutes_before_GBE == false)
 			{
 				ROS_INFO("4 minute has passsed");
 			}
-			imu_flag_msgs.wait_4_minutes_before_GBE == true;
+			imu_flag_msgs.wait_4_minutes_before_GBE = true;
 		}
 	}
 }
 
 void status_callback(const diagnostic_msgs::KeyValue::ConstPtr msg)
 {
-	if(msg->value[27] == 1 && msg->value[28] == 1)
+	int value_27 = msg->value[27]- '0';
+	int value_28 = msg->value[28]- '0';
+	if(value_27 == 1 && value_28 == 1)
 	{
+		if(flag_start_GBE == false)
 		ROS_INFO("GBE started");
 		flag_start_GBE = true;
 	}
-	if(flag_start_GBE == true && msg->value[27] == 0 && msg->value[28] == 0)
+	if(flag_start_GBE == true && value_27 == 0 && value_28 == 0)
 	{
+		if(GBE_success_flag == false)
 		ROS_INFO("GBE finished and succeeded");
 		GBE_success_flag = true;
 	}
@@ -112,8 +119,9 @@ int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "iaodfnioaen");
 	ros::NodeHandle main_nh;
+	ROS_INFO("imu_flag_node initialized");
 	imu_flag_node_class imu_flag_node_object;
-	ros::Publisher imu_ready_flag_pub = main_nh.advertise<std_msgs::Bool>("/imu_ready", 1000);
+	ros::Publisher imu_ready_flag_pub = main_nh.advertise<imu_flag_node::imu_flag_custom_msgs>("/imu_ready", 1000);
 	imu_flag_node::imu_flag_custom_msgs imu_ready_flag_msgs;
 	while(ros::ok())
 	{	
